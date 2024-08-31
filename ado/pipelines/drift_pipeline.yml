@@ -1,0 +1,43 @@
+variables:
+- group: mlops-init-dev
+trigger:
+- none
+pool:
+  vmImage: 'ubuntu-latest'
+stages:
+- stage: RegisterDriftPipeline
+  displayName: Register drift monitoring schedules
+  jobs:
+    - job: DeployDriftJobs
+      timeoutInMinutes: 60
+      steps:
+      - checkout: self
+        path: s/ #Source 
+      - template: /ado/tasks/install_az_cli.yml
+      - template: /ado/tasks/install_aml_cli.yml
+      - template: /ado/tasks/aml_workspace_connect.yml
+      - template: /ado/tasks/aml_create_environment.yml
+        parameters:
+          build_type: conda
+          environment_name: $(environment_drift_name)
+          environment_file: aml/environment/drift_env.yml
+      - template: /ado/tasks/aml_create_compute.yml
+        parameters:
+          cluster_name: $(compute_cluster_name_train)
+          size: $(compute_cluster_sku_train)
+          min_instances: 1 #Passing variables from variable group is always a string value
+          max_instances: 1
+          tier: dedicated
+      # - template: /ado/tasks/aml_run_pipeline.yml
+      #   parameters:
+      #     pipeline_file: aml/src/definitions/drift/data_drift.yml
+      #     experiment_name: test_setting6
+      #     display_name: testing_drift
+      #     default_compute: heartdiseasemlops1
+      - template: /ado/tasks/aml_create_schedule.yml
+        parameters:
+          file_name: aml/pipelines/data_export_trigger.yml
+      - template: /ado/tasks/aml_create_schedule.yml
+        parameters:
+          file_name: aml/pipelines/data_export_trigger.yml
+

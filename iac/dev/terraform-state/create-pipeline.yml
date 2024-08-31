@@ -1,0 +1,60 @@
+trigger:
+  branches:
+    include:
+    - master
+  paths:
+    include:
+    - iac/dev/terraform-state/*
+pr:
+  branches:
+    include:
+    - master
+  paths:
+    include:
+    - iac/dev/terraform-state/*
+pool:
+  vmImage: 'ubuntu-latest'
+variables:
+- group: mlops-terraform-state-dev
+steps:
+- task: charleszipp.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-installer.TerraformInstaller@0
+  displayName: 'Install Terraform 1.9.3'
+  inputs:
+    terraformVersion: 1.9.3
+- task: charleszipp.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-cli.TerraformCLI@0
+  displayName: 'Terraform initialization - Create RG and Storage Account for TF backend'
+  inputs:
+    command: init
+    commandOptions: '-input=false'
+    workingDirectory: '$(Build.SourcesDirectory)/iac/dev/terraform-state'
+- task: charleszipp.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-cli.TerraformCLI@0
+  displayName: 'Terraform validation - Create RG and Storage Account for TF backend'
+  inputs:
+    command: validate
+    workingDirectory: '$(Build.SourcesDirectory)/iac/dev/terraform-state'
+- task: charleszipp.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-cli.TerraformCLI@0
+  displayName: 'Terraform plan - Create RG and Storage Account for TF backend'
+  inputs:
+    command: plan
+    commandOptions: '-input=false'
+    workingDirectory: '$(Build.SourcesDirectory)/iac/dev/terraform-state'
+    environmentServiceName: $(mlops_subscription) #Fetches from ADO service connections.
+  env:
+    TF_VAR_tf_state_rg: $(tf_state_rg)
+    TF_VAR_tf_state_location: $(tf_state_location)
+    TF_VAR_tf_state_storage_acc: $(tf_state_storage_acc)
+    TF_VAR_tf_state_storage_acc_container: $(tf_state_storage_acc_container)
+    TF_VAR_tf_state_storage_environment: $(tf_state_storage_environment)
+- task: charleszipp.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-cli.TerraformCLI@0
+  displayName: 'Terraform apply - Create RG and Storage Account for TF backend'
+  inputs:
+    command: apply
+    commandOptions: '-input=false'
+    workingDirectory: '$(Build.SourcesDirectory)/iac/dev/terraform-state'
+    environmentServiceName: $(mlops_subscription) #Fetches from ADO service connections.
+  env:
+    TF_VAR_tf_state_rg: $(tf_state_rg)
+    TF_VAR_tf_state_location: $(tf_state_location)
+    TF_VAR_tf_state_storage_acc: $(tf_state_storage_acc)
+    TF_VAR_tf_state_storage_acc_container: $(tf_state_storage_acc_container)
+    TF_VAR_tf_state_storage_environment: $(tf_state_storage_environment)

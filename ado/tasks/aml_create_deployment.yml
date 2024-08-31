@@ -1,0 +1,27 @@
+parameters:
+  - name: deployment_name
+    type: string
+  - name: endpoint_name
+    type: string
+  - name: endpoint_type
+    type: string
+  - name: deployment_file
+    type: string
+  - name: deployment_instance_sku
+    type: string
+
+steps:
+  - task: AzureCLI@2
+    displayName: Create deployment
+    continueOnError: false
+    inputs: 
+      azureSubscription: $(aml_service_connection)
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -o xtrace
+        az ml ${{ parameters.endpoint_type }}-deployment create \
+        -n ${{ parameters.deployment_name }} \
+        -e ${{ parameters.endpoint_name }} \
+        -f ${{ parameters.deployment_file}} --all-traffic \
+        --set instance_type=${{ parameters.deployment_instance_sku }}

@@ -1,0 +1,33 @@
+type: pipeline
+display_name: Heart disease data drift pipeline
+description: Pipeline to measure data drift between a reference dataset and target dataset.
+
+inputs:
+  reference_data:
+    type: uri_file
+    path: azureml:heart-disease-baseline@latest
+  target_data:
+    type: uri_folder
+    path: azureml:heart-disease-online-files@latest
+
+settings:
+  default_datastore: azureml:workspaceblobstore
+  continue_on_step_failure: false
+  default_compute: azureml:heartdiseasemlops1
+
+jobs:
+  data_drift_step:
+    type: command
+    environment_variables:
+      APPLICATIONINSIGHTS_CONNECTION_STRING: InstrumentationKey=f22f0e47-bc07-4d3f-8668-abc17b08162f;IngestionEndpoint=https://eastus-0.in.applicationinsights.azure.com/;LiveEndpoint=https://eastus.livediagnostics.monitor.azure.com/;ApplicationId=45951348-785a-48e4-991a-c091dd64ba7d # example: "InstrumentationKey=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    inputs:
+      reference_data: ${{parent.inputs.reference_data}}
+      target_data: ${{parent.inputs.target_data}}
+      model_name: heart-disease
+    code: ../../../src/drift
+    environment: azureml:heart-disease-drift@latest
+    command: >-
+      python drift.py 
+      --model_name ${{inputs.model_name}} 
+      --reference_data ${{inputs.reference_data}}
+      --target_data ${{inputs.target_data}}

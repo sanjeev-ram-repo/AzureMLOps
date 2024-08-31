@@ -1,0 +1,55 @@
+# name: $(Build.DefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd)_$(Rev:r)
+# trigger:
+#   paths:
+#     include:
+#       - aml/*
+#   branches:
+#     include:
+#       - main
+pool:
+  vmImage: 'ubuntu-latest'
+stages:
+  - stage: RunPythonUnitTests
+    displayName: Run Python Unit Tests
+    jobs:
+      - job: RunPythonUnitTests
+        steps:
+          - checkout: self
+            path: s/
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: '3.10'
+              architecture: 'x64'
+          - script: |
+              python -m pip install --upgrade pip
+              pip install pytest codecov pydocstyle pytest-cov \
+              pylint pylint_junit flake8==3.7.* flake8_formatter_junit_xml==0.0.*
+            displayName: Install test dependencies
+          - script: |
+              pip install -r aml/environment/train_requirements.txt
+            displayName: Install project dependencies
+          - script: |
+              flake8 aml/src --output-file=flake8-testresults.xml --format junit-xml \
+              --exit-zero
+            displayName: Run flake8 code quality tests
+          - script: |
+              pylint aml/src --output-format=pylint_junit.JUnitReporter --exit-zero > \
+              pylint-testresults.xml
+            displayName: Run pylint code quality tests
+          - script: |
+              pytest -v aml/src/*/test_*.py --doctest-modules --junitxml=unit-testresults.xml \
+              --cov src --cov append --cov-report=xml:coverage.xml --cov-report=html:htmlcov
+            displayName: Run pytest code quality tests
+          - task: PublishTestResults@2
+            displayName: Publish unit test results
+            inputs:
+              testResultsFormat: 'JUnit'
+              testResultsFiles: '**/*-testresults.xml'
+              testRunTitle: '$(Agent.OS) - $(Build.BuildNumber)[$(Agent.JobName)] - Python $(python.version) - Linting and Unit Test results'
+            condition: succeededOrFailed()
+          - task: PublishCodeCoverageResults@1
+            displayName: Publish coverage results
+            inputs:
+              codeCoverageTool: Cobertura
+              summaryFileLocation: 'coverage.xml'
+              reportDirectory: 'htmlcov'

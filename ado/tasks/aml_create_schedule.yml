@@ -1,0 +1,13 @@
+parameters:
+  - name: file_name
+    type: string
+steps:
+  - task: AzureCLI@2
+    displayName: Creating an AML schedule
+    continueOnError: false
+    inputs:
+      azureSubscription: $(aml_service_connection)
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        az ml schedule create --file ${{ parameters.file_name }} --no-wait

@@ -1,0 +1,26 @@
+parameters:
+- name: endpoint_type
+  type: string
+- name: endpoint_name
+  type: string
+- name: endpoint_file
+  type: string
+
+steps:
+  - task: AzureCLI@2
+    displayName: Create online/batch endpoint 
+    continueOnError: false
+    inputs: 
+      azureSubscription: $(aml_service_connection)
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        ENDPOINT_EXISTS=$(az ml ${{ parameters.endpoint_type }}-endpoint \
+        list -o tsv --query "[?name=='${{ parameters.endpoint_name }}'][name]" | wc -l)
+        if [[ ENDPOINT_EXISTS -ne 1 ]]; then
+            az ml ${{ parameters.endpoint_type }}-endpoint create \
+            --name ${{ parameters.endpoint_name }} \
+            -f ${{ parameters.endpoint_file }}
+        else
+            echo "Endpoint exists"
+        fi

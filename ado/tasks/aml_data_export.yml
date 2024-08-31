@@ -1,0 +1,62 @@
+parameters:
+  - name: pipeline_file
+    type: string
+  - name: experiment_name
+    type: string
+  - name: display_name
+    type: string
+  - name: default_compute
+    type: string
+  - name: model_name
+    type: string
+  - name: model_version
+    type: string
+  - name: log_ws_id
+    type: string
+  - name: n_days
+    type: number
+
+steps:
+  - task: AzureCLI@2
+    displayName: Run Drift pipeline
+    continueOnError: false
+    inputs: 
+      azureSubscription: $(aml_service_connection)
+      scriptType: bash
+      workingDirectory: $(System.DefaultWorkingDirectory)
+      scriptLocation: inlineScript
+      inlineScript: |
+        run_id=$(az ml job create -f ${{ parameters.pipeline_file }} \
+            -n ${{ parameters.experiment_name }} \
+            --set experiment_name=${{ parameters.experiment_name }} \
+                  inputs.subscriptionId=$(subscription_id) \
+                  inputs.rg_group=$(resource_group) \
+                  inputs.workspace=$(aml_workspace) \
+                  inputs.model_name=$(model_name) \
+                  inputs.model_version=$(model_version)\
+                  inputs.log_ws_id=$(log_ws_id) \
+                  inputs.n_days=$(n_days)
+                  settings.default_compute="azureml:${{ parameters.default_compute }}" \
+                  display_name=${{ parameters.display_name }} --query name -o tsv)
+
+        if [[ -z "$run_id" ]]; then
+          echo "Job creation failed"
+          exit 3
+        fi
+        az ml job show -n $run_id --web
+        status=$(az ml job show -n $run_id --query status -o tsv)
+        if [[ -z "$status" ]]; then
+          echo "Status query failed"
+          exit 4
+        fi
+        running=("NotStarted" "Queued" "Starting" "Preparing" "Running" \
+        "Finalizing" "CancelRequested")
+        while [[ ${running[*]} =~ $status ]]; do
+          sleep 15 
+          status=$(az ml job show -n $run_id --query status -o tsv)
+          echo $status
+        done
+        if [[ "$status" != "Completed" ]]; then
+          echo "Training Job failed or canceled"
+          exit 3
+        fi

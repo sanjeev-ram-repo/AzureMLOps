@@ -1,0 +1,7 @@
+model: azureml:heart_disease_prediction_model@latest
+environment: azureml:heart-disease-serve@latest
+instance_count: 1
+app_insights_enabled: true
+code_configuration:
+  code: ../../../src/serve
+  scoring_script: scoring.py

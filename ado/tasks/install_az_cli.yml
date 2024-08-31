@@ -1,0 +1,12 @@
+steps:
+  - task: AzureCLI@2
+    displayName: Install AZ CLI
+    inputs:
+      azureSubscription: $(aml_service_connection)
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        set -e
+        python -m pip install -U --force-reinstall pip pip install azure-cli==2.63.0
+        az version
+    condition: eq(variables.AZ_CLI_CACHE_RESTORED, 'false')

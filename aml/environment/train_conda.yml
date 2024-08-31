@@ -1,0 +1,16 @@
+dependencies:
+  - python=3.10.*
+  - pip
+  - pip:
+    - numpy
+    - pandas
+    - matplotlib
+    - scikit-learn==1.2.0
+    - xgboost==1.7.5
+    - xlrd
+    - mlflow
+    - azureml-mlflow
+    - onnx
+    - onnxruntime
+    - skl2onnx
+    - onnxmltools

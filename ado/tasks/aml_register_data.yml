@@ -1,0 +1,30 @@
+parameters:
+  - name: rg
+    type: string
+  - name: ws
+    type: string
+  - name: dataset_name
+    type: string
+  - name: dataset_description
+    type: string
+  - name: dataset_type
+    type: string
+  - name: dataset_path
+    type: string
+  
+steps:
+  - task: AzureCLI@2
+    displayName: Register Azure ML data asset
+    continueOnError: false
+    inputs: 
+      azureSubscription: $(aml_service_connection)
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        az ml data create \
+        -n ${{ parameters.dataset_name }} \
+        -d ${{ parameters.dataset_description }} \
+        -t ${{ parameters.dataset_type }} \
+        -p ${{ parameters.dataset_path }} \
+        -g ${{ parameters.rg }} \
+        -w ${{ parameters.ws }}

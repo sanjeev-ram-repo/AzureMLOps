@@ -1,0 +1,53 @@
+name: $(Build.DefinitionName)_$(SourceBranchName)_$(Date:yyyyMMdd)_$(Rev:r)
+variables:
+- group: mlops-init-dev
+trigger:
+- none
+pool:
+  vmImage: 'ubuntu-latest'
+stages:
+- stage: RunTrainingPipeline
+  displayName: Run Training Pipeline
+  jobs:
+    - job: DeployDevTrainingPipeline
+      timeoutInMinutes: 120
+      steps:
+      - checkout: self
+        path: s/ #Source folder
+      - template: /ado/tasks/install_az_cli.yml
+      - template: /ado/tasks/install_aml_cli.yml
+      - template: /ado/tasks/aml_workspace_connect.yml
+      - template: /ado/tasks/aml_register_data.yml #Registering the base data
+        parameters:
+          rg: $(mlops_rg)
+          ws: $(aml_ws_name)
+          dataset_name: $(dataset_base_name)
+          dataset_description: $(dataset_base_desc)
+          dataset_type: $(dataset_type)
+          dataset_path: $(dataset_path)
+      - template: /ado/tasks/aml_register_data.yml #Registering the online data
+        parameters:
+          rg: $(mlops_rg)
+          ws: $(aml_ws_name)
+          dataset_name: $(dataset_online_name)
+          dataset_description: $(dataset_online_desc)
+          dataset_type: $(dataset_type)
+          dataset_path: $(dataset_path)
+      - template: /ado/tasks/aml_create_environment.yml
+        parameters:
+          build_type: conda
+          environment_name: $(environment_train_name)
+          environment_file: aml/environment/train_env.yml
+      - template: /ado/tasks/aml_create_compute.yml
+        parameters:
+          cluster_name: $(compute_cluster_name_train)
+          size: $(compute_cluster_sku_train)
+          min_instances: 1 #Passing variables from variable group is always a string value
+          max_instances: 1
+          tier: dedicated
+      - template: /ado/tasks/aml_run_pipeline.yml
+        parameters:
+          pipeline_file: aml/pipelines/train_pipeline.yml
+          experiment_name: $(aml_experiment_name)
+          display_name: $(aml_experiment_name)_$(Build.BuildNumber)
+          default_compute: $(compute_cluster_name_train)

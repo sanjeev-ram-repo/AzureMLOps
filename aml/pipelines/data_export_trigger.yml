@@ -1,0 +1,12 @@
+name: heart-disease-export-pipeline-schedule
+display_name: Heart Disease Online Data Export
+description: Recurring job scheduled to export inference data from log analytics workspace and write to the storage account.
+
+trigger:
+  type: recurrence
+  frequency: minute
+  interval: 15
+  start_time: "2024-08-20T00:00:00"
+  time_zone: "India Standard Time"
+
+create_job: ../src/definitions/drift/data_export.yml

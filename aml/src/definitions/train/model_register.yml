@@ -1,0 +1,20 @@
+
+name: onnx_build_register
+display_name: ONNX model building and registering in model registry
+version: 1
+type: command
+inputs:
+    data:
+        type: uri_folder
+    model_path:
+        type: mlflow_model
+outputs:
+    model_pipeline:
+        type: mlflow_model
+code: ../../../src/serve
+environment: azureml:heart-disease-train@latest
+command: >-
+    python model_register.py 
+    --data ${{inputs.data}}
+    --model_path ${{inputs.model_path}} 
+    --model_pipeline ${{outputs.model_pipeline}}

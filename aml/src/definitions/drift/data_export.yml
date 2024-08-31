@@ -1,0 +1,28 @@
+type: pipeline
+display_name: Online data export to csv file
+settings:
+  default_datastore: azureml:workspaceblobstore
+  continue_on_step_failure: false
+  default_compute: azureml:heartdiseasemlops1
+jobs:
+  data_export_step:
+    inputs: 
+      model_name: heart_disease_prediction_model
+      model_version: 1
+      log_ws_id: 3af736af-4f3d-41c7-886f-a0c6596bd94c
+      n_days: 1
+    outputs:
+      output_data:
+        type: uri_folder
+        name: heart-disease-online-files
+        path: azureml://datastores/workspaceblobstore/paths/azureml/onlinedata
+    type: command
+    code: ../../../src/drift
+    environment: azureml:heart-disease-drift@latest
+    command: >-
+      python export.py 
+      --model_name ${{inputs.model_name}}
+      --model_version ${{inputs.model_version}}
+      --prepared_data_dir ${{outputs.output_data}}
+      --log_analytics_workspace_id ${{inputs.log_ws_id}}
+      --n_days ${{inputs.n_days}}

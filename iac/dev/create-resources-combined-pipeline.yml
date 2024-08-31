@@ -1,0 +1,126 @@
+trigger: none
+pr: none
+pool:
+  vmImage: 'ubuntu-latest'
+variables:
+  - group: mlops-terraform-state-dev
+  - group: mlops-init-dev
+stages:
+  - stage: terraform_backend
+    displayName: Terraform Backend Initialization
+    jobs:
+      - job: terraform_backend_initialization
+        steps:
+          - task: TerraformInstaller@1
+            displayName: 'Terraform backend - Install terraform'
+            inputs:
+              terraformVersion: 1.9.3
+          - task: TerraformCLI@0
+            displayName: 'Terraform backend - Check terraform version'
+            inputs:
+              command: version
+          - task: TerraformCLI@0
+            displayName: 'Terraform backend - Terraform initialization'
+            inputs:
+              command: init
+              commandOptions: '-input=false'
+              workingDirectory: '$(Build.SourcesDirectory)/iac/dev/terraform-state'
+          - task: TerraformCLI@0
+            displayName: 'Terraform backend - Terraform validate'
+            inputs:
+              command: validate
+              workingDirectory: '$(Build.SourcesDirectory)/iac/dev/terraform-state'
+          - task: TerraformCLI@0
+            displayName: 'Terraform backend - Terraform plan'
+            inputs:
+              command: plan
+              commandOptions: '-input=false'
+              workingDirectory: '$(Build.SourcesDirectory)/iac/dev/terraform-state'
+              environmentServiceName: $(mlops_subscription) #Fetches from ADO service connections.
+            env:
+              TF_VAR_tf_state_rg: $(tf_state_rg)
+              TF_VAR_tf_state_location: $(tf_state_location)
+              TF_VAR_tf_state_storage_acc: $(tf_state_storage_acc)
+              TF_VAR_tf_state_storage_acc_container: $(tf_state_storage_acc_container)
+              TF_VAR_tf_state_storage_environment: $(tf_state_storage_environment)
+          - task: TerraformCLI@0
+            displayName: 'Terraform backend - Terraform plan'
+            inputs:
+              command: apply
+              commandOptions: '-input=false'
+              workingDirectory: '$(Build.SourcesDirectory)/iac/dev/terraform-state'
+              environmentServiceName: $(mlops_subscription) #Fetches from ADO service connections.
+            env:
+              TF_VAR_tf_state_rg: $(tf_state_rg)
+              TF_VAR_tf_state_location: $(tf_state_location)
+              TF_VAR_tf_state_storage_acc: $(tf_state_storage_acc)
+              TF_VAR_tf_state_storage_acc_container: $(tf_state_storage_acc_container)
+              TF_VAR_tf_state_storage_environment: $(tf_state_storage_environment)
+  - stage: mlops_resource_creation
+    dependsOn: 
+      - terraform_backend
+    condition: succeeded('terraform_backend')
+    displayName: MLOps service creation
+    jobs:
+      - job: mlops_resource_creation
+        steps:
+          - task: TerraformInstaller@1
+            displayName: 'MLOps resources - Install terraform'
+            inputs:
+              terraformVersion: 1.9.3
+          - task: TerraformCLI@0
+            displayName: 'MLOps resources - Check terraform version'
+            inputs:
+              command: version
+          - task: TerraformCLI@0
+            displayName: 'MLOps resources - Terraform initialization'
+            inputs:
+              command: init
+              commandOptions: '-input=false'
+              workingDirectory: '$(Build.SourcesDirectory)/iac/dev/ml-setup'
+              backendType: azurerm
+              backendServiceArm: $(mlops_subscription)
+              backendAzureRmResourceGroupLocation: $(tf_state_location)
+              backendAzureRmResourceGroupName: $(tf_state_rg)
+              backendAzureRmStorageAccountName: $(tf_state_storage_acc)
+              backendAzureRmContainerName: $(tf_state_storage_acc_container)
+              backendAzureRmKey: $(tf_state_file_name)
+          - task: TerraformCLI@0
+            displayName: 'MLOps resources - Terraform validate'
+            inputs:
+              command: validate
+              workingDirectory: '$(Build.SourcesDirectory)/iac/dev/ml-setup'
+          - task: TerraformCLI@0
+            displayName: 'MLOps resources - Terraform Plan'
+            inputs:
+              command: plan
+              commandOptions: '-input=false'
+              workingDirectory: '$(Build.SourcesDirectory)/iac/dev/ml-setup'
+              environmentServiceName: $(mlops_subscription)
+            env:
+              TF_VAR_tf_state_rg:  $(tf_state_rg)
+              TF_VAR_tf_state_storage_acc: $(tf_state_storage_acc)
+              TF_VAR_tf_state_storage_acc_container: $(tf_state_storage_acc_container)
+              TF_VAR_tf_state_file_name: $(tf_state_file_name)
+              TF_VAR_tf_state_location: $(tf_state_location)
+              TF_VAR_mlops_rg: $(mlops_rg)
+              TF_VAR_mlops_loc: $(mlops_loc)
+              TF_VAR_mlops_base_name: $(mlops_base_name)
+              TF_VAR_aml_ws_name: $(aml_ws_name)
+          - task: TerraformCLI@0
+            displayName: 'MLOps resources - Terraform apply'
+            inputs:
+              command: apply
+              commandOptions: '-input=false'
+              workingDirectory: '$(Build.SourcesDirectory)/iac/dev/ml-setup'
+              environmentServiceName: $(mlops_subscription)
+            env:
+              TF_VAR_tf_state_rg:  $(tf_state_rg)
+              TF_VAR_tf_state_storage_acc: $(tf_state_storage_acc)
+              TF_VAR_tf_state_storage_acc_container: $(tf_state_storage_acc_container)
+              TF_VAR_tf_state_file_name: $(tf_state_file_name)
+              TF_VAR_tf_state_location: $(tf_state_location)
+              TF_VAR_mlops_rg: $(mlops_rg)
+              TF_VAR_mlops_loc: $(mlops_loc)
+              TF_VAR_mlops_base_name: $(mlops_base_name)
+              TF_VAR_aml_ws_name: $(aml_ws_name)

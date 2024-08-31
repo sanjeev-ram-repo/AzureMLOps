@@ -1,0 +1,33 @@
+trigger: none
+pr: none
+variables:
+      - group: mlops-init-dev
+      - group: mlops-terraform-state-dev
+pool:
+      vmImage: 'ubuntu-latest'
+stages:
+  - stage: destroy_mlops_resources
+    displayName: Destroy MLOps RG
+    jobs:
+      - job: delete_mlops_rg
+        steps:
+          - task: AzureResourceGroupDeployment@2
+            displayName: 'Delete MLOps resource group'
+            inputs:
+              azureSubscription: $(mlops_subscription)
+              action: 'DeleteRG'
+              resourceGroupName: $(mlops_rg)
+              location: $(mlops_loc)
+  - stage: destroy_tf_state
+    dependsOn: destroy_mlops_resources
+    displayName: Destroy TF Backend
+    jobs:
+      - job: delete_tf_rg
+        steps:
+          - task: AzureResourceGroupDeployment@2
+            displayName: 'Delete tfstate resource group'
+            inputs:
+              azureSubscription: $(mlops_subscription)
+              action: 'DeleteRG'
+              resourceGroupName: $(tf_state_rg)
+              location: $(tf_state_location)

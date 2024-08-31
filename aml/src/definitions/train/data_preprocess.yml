@@ -1,0 +1,33 @@
+
+name: preprocess-component
+display_name: Heart disease data preprocess
+type: command
+inputs:
+    raw_data: 
+        type: uri_file
+    categorical_encoding:
+        type: string
+        default: ordinal
+        optional: true
+    test_size:
+        type: number
+        default: 0.3
+    log_model:
+        type: number
+        default: 1
+        optional: true
+outputs:
+    prepared_data:
+        type: uri_folder
+    transformations_output:
+        type: mlflow_model
+code: ../../../src/prepare_data
+environment: azureml:heart-disease-train@latest
+command: >-
+    python prep.py
+    --raw_data ${{inputs.raw_data}}
+    $[[--categorical_encoding ${{inputs.categorical_encoding}}]]
+    --test_size ${{inputs.test_size}}
+    $[[--log_model ${{inputs.log_model}}]]
+    --prepared_data ${{outputs.prepared_data}}
+    --transformations_output ${{outputs.transformations_output}}

@@ -1,0 +1,35 @@
+parameters:
+- name: build_type
+  type: string
+- name: environment_name
+  type: string
+- name: environment_file
+  type: string
+
+steps:
+  - task: AzureCLI@2
+    condition: and(succeeded(), eq('${{ parameters.build_type }}', 'docker'))
+    displayName: Register Docker Azure ML environment
+    continueOnError: false
+    inputs: 
+      azureSubscription: $(aml_service_connection)
+      scriptType: bash
+      workingDirectory: $(System.DefaultWorkingDirectory)
+      scriptLocation: inlineScript
+      inlineScript: |
+        az ml environment create \
+        -f ${{ parameters.environment_file }}
+
+  - task: AzureCLI@2
+    condition: and(succeeded(), eq('${{ parameters.build_type }}', 'conda'))
+    displayName: Register Conda Azure ML environment
+    continueOnError: false
+    inputs: 
+      azureSubscription: $(aml_service_connection)
+      scriptType: bash
+      workingDirectory: $(System.DefaultWorkingDirectory)
+      scriptLocation: inlineScript
+      inlineScript: |
+        az ml environment create \
+        -n ${{ parameters.environment_name }} \
+        -f ${{ parameters.environment_file }}

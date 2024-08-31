@@ -1,0 +1,35 @@
+
+type: command
+name: heart_disease_train
+display_name: Training definition - heart disease dataset
+inputs:
+    data:
+        type: uri_folder
+    target_column:
+        type: string
+        default: target
+    feat_transformer:
+        type: mlflow_model
+    model_name:
+        type: string
+        default: best_model
+    max_depth:
+        type : number
+        default: 3
+    scale_pos_weight:
+        type : number
+        default: 99
+outputs:
+    model_folder:
+        type: mlflow_model
+environment: azureml:heart-disease-train@latest
+code: ../../../src/train
+command: >-
+    python train.py
+    --data ${{inputs.data}}
+    --target_column ${{inputs.target_column}}
+    --feat_transformer ${{inputs.feat_transformer}}
+    --model_name ${{inputs.model_name}}
+    --max_depth ${{inputs.max_depth}}
+    --scale_pos_weight ${{inputs.scale_pos_weight}}
+    --model_folder ${{outputs.model_folder}}

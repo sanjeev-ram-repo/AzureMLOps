@@ -1,0 +1,80 @@
+trigger:
+  branches:
+    include:
+      - master
+  paths:
+    include:
+      - iac/dev/ml-setup/*
+pr:
+  branches:
+    include:
+      - master
+  paths:
+    include:
+      - iac/dev/ml-setup/*
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: mlops-init-dev
+  - group: mlops-terraform-state-dev
+
+steps:
+  - task: charleszipp.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-installer.TerraformInstaller@0
+    displayName: 'Install Terraform 1.9.3'
+    inputs:
+      terraformVersion: 1.9.3
+  - task: charleszipp.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-cli.TerraformCLI@0
+    displayName: 'Terraform initialization - deploying MLOps resources to Azure'
+    inputs:
+      command: init
+      commandOptions: '-input=false'
+      workingDirectory: '$(Build.SourcesDirectory)/iac/dev/ml-setup'
+      backendType: azurerm
+      backendServiceArm: $(mlops_subscription)
+      backendAzureRmResourceGroupLocation: $(tf_state_location)
+      backendAzureRmResourceGroupName: $(tf_state_rg)
+      backendAzureRmStorageAccountName: $(tf_state_storage_acc)
+      backendAzureRmContainerName: $(tf_state_storage_acc_container)
+      backendAzureRmKey: $(tf_state_file_name)
+  - task: charleszipp.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-cli.TerraformCLI@0
+    displayName: 'Terraform validate - deploying MLOps resources to Azure'
+    inputs:
+      command: validate
+      workingDirectory: '$(Build.SourcesDirectory)/iac/dev/ml-setup'
+  - task: charleszipp.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-cli.TerraformCLI@0
+    displayName: 'Terraform plan - deploying MLOps resources to Azure'
+    inputs:
+      command: plan
+      commandOptions: '-input=false'
+      workingDirectory: '$(Build.SourcesDirectory)/iac/dev/ml-setup'
+      environmentServiceName: $(mlops_subscription)
+    env:
+      TF_VAR_tf_state_rg:  $(tf_state_rg)
+      TF_VAR_tf_state_storage_acc: $(tf_state_storage_acc)
+      TF_VAR_tf_state_storage_acc_container: $(tf_state_storage_acc_container)
+      TF_VAR_tf_state_file_name: $(tf_state_file_name)
+      TF_VAR_tf_state_location: $(tf_state_location)
+      TF_VAR_mlops_rg: $(mlops_rg)
+      TF_VAR_mlops_loc: $(mlops_loc)
+      TF_VAR_mlops_base_name: $(mlops_base_name)
+      TF_VAR_aml_ws_name: $(aml_ws_name)
+
+  - task: charleszipp.azure-pipelines-tasks-terraform.azure-pipelines-tasks-terraform-cli.TerraformCLI@0
+    displayName: 'TF apply - Deploy MLOps resources to Azure'
+    inputs:
+      command: apply
+      commandOptions: '-input=false'
+      workingDirectory: '$(Build.SourcesDirectory)/iac/dev/ml-setup'
+      environmentServiceName: $(mlops_subscription)
+    env:
+      TF_VAR_tf_state_rg:  $(tf_state_rg)
+      TF_VAR_tf_state_storage_acc: $(tf_state_storage_acc)
+      TF_VAR_tf_state_storage_acc_container: $(tf_state_storage_acc_container)
+      TF_VAR_tf_state_file_name: $(tf_state_file_name)
+      TF_VAR_tf_state_location: $(tf_state_location)
+      TF_VAR_mlops_rg: $(mlops_rg)
+      TF_VAR_mlops_loc: $(mlops_loc)
+      TF_VAR_mlops_base_name: $(mlops_base_name)
+      TF_VAR_aml_ws_name: $(aml_ws_name)

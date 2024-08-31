@@ -1,0 +1,36 @@
+parameters:
+  - name: cluster_name
+    type: string
+  - name: size
+    type: string
+  - name: min_instances
+    type: number
+  - name: max_instances
+    type: number
+  - name: tier
+    type: string
+
+steps:
+  - task: AzureCLI@2
+    displayName: Create AML compute cluster
+    continueOnError: false
+    inputs:
+      azureSubscription: $(aml_service_connection)
+      scriptType: bash
+      scriptLocation: inlineScript
+      inlineScript: |
+        echo "${{ parameters.cluster_name }}"
+        compute_name=\
+        $(az ml compute show -n ${{ parameters.cluster_name }} --query name -o tsv)
+        if [[ -z "$compute_name" ]]; then
+          echo "Creating cluster"
+          az ml compute create --name ${{ parameters.cluster_name }} \
+                               --type amlcompute --size ${{ parameters.size }}\
+                               --min-instances ${{ parameters.min_instances }}\
+                               --max-instances ${{ parameters.max_instances }}\
+                               --tier ${{ parameters.tier }}\
+                               --identity-type system_assigned
+        else
+          echo "Cluster $compute_name exists"
+          exit 0
+        fi

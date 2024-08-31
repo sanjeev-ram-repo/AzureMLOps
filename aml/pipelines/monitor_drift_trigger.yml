@@ -1,0 +1,12 @@
+name: heart-disease-drift-pipeline-schedule
+display_name: heart disease drift pipeline schedule
+description: Recurring job scheduled to measure data drift between a reference dataset and target dataset.
+
+trigger:
+  type: recurrence
+  frequency: minute
+  interval: 20
+  start_time: "2024-08-20T00:00:00"
+  time_zone: "India Standard Time"
+
+create_job: ../src/definitions/drift/data_drift.yml

@@ -1,0 +1,8 @@
+numpy
+pandas
+matplotlib
+scikit-learn==1.2.0
+xgboost==1.7.5
+xlrd
+mlflow
+azureml-mlflow
